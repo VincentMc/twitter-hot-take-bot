@@ -2,27 +2,40 @@ import * as dotenv from 'dotenv';
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import { TwitterApi } from 'twitter-api-v2';
+import { Configuration, OpenAIApi } from 'openai';
 
 dotenv.config();
+const {
+  TWITTER_CLIENT_ID,
+  TWITTER_CLIENT_SECRET,
+  OPENAI_ORG,
+  OPENAI_SECRET,
+  CALLBACK_URL,
+} = process.env;
 
+// Initialise twitter client
 const twitterClient = new TwitterApi({
-  clientId: process.env.TWITTER_CLIENT_ID,
-  clientSecret: process.env.TWITTER_CLIENT_SECRET,
+  clientId: TWITTER_CLIENT_ID,
+  clientSecret: TWITTER_CLIENT_SECRET,
 });
 
+// Initialise openAI
+const configuration = new Configuration({
+  organization: OPENAI_ORG,
+  apiKey: OPENAI_SECRET,
+});
+const openai = new OpenAIApi(configuration);
 
+// Initialize firebase
 admin.initializeApp();
 const dbRef = admin.firestore().doc('tokens/demo');
 
-const callbackUrl = 'http://127.0.0.1:5000/hot-twitter-bot/us-central1/callback';
-
 exports.auth = functions.https.onRequest(async (request, response) => {
   const { url, codeVerifier, state } = twitterClient.generateOAuth2AuthLink(
-    callbackUrl,
+    CALLBACK_URL,
     { scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'] }
   );
 
-  // store verifier
   await dbRef.set({ codeVerifier, state });
 
   response.redirect(url);
@@ -49,7 +62,7 @@ exports.callback = functions.https.onRequest(async (request, response) => {
     accessToken,
     refreshToken,
   } = await twitterClient.loginWithOAuth2({
-    code: `${code}`, codeVerifier, redirectUri: callbackUrl,
+    code: `${code}`, codeVerifier, redirectUri: CALLBACK_URL,
   });
 
   // access and refresh tokens
@@ -70,6 +83,23 @@ exports.tweet = functions.https.onRequest(async (request, response) => {
   // await dbRef.set({ accessToken, refreshToken: newRefreshToken });
 
   // const { data } = await refreshedClient.v2.tweet('I done did a twitter');
+  const completion = await openai.createChatCompletion({
+    messages: [{
+      'role': 'user',
+      'content': 'write a tweet by Skip Bayless on how terrible' +
+      'Lebron is in the 4th quarter in 280 characters or less',
+    }],
+    model: 'gpt-3.5-turbo',
+    temperature: 1,
+  });
+  // const completion = await openai.createCompletion({
+  //   model: 'gpt-3.5-turbo',
+  //   prompt: 'write a clickbait tweet by Skip Bayless on how overrated' +
+  //   'K-Pop is in 280 characters or less',
+  //   max_tokens: 280,
+  // });
 
-  response.status(200).send('');
+  const tweet = completion.data.choices[0].message.content;
+
+  response.status(200).send(tweet);
 });
