@@ -1,19 +1,75 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+import * as dotenv from 'dotenv';
+import * as admin from 'firebase-admin';
+import * as functions from 'firebase-functions';
+import { TwitterApi } from 'twitter-api-v2';
 
-import {onRequest} from "firebase-functions/v2/https";
-import * as logger from "firebase-functions/logger";
+dotenv.config();
 
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
+const twitterClient = new TwitterApi({
+  clientId: process.env.TWITTER_CLIENT_ID,
+  clientSecret: process.env.TWITTER_CLIENT_SECRET,
+});
 
-// export const helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+
+admin.initializeApp();
+const dbRef = admin.firestore().doc('tokens/demo');
+
+const callbackUrl = 'http://127.0.0.1:5000/hot-twitter-bot/us-central1/callback';
+
+exports.auth = functions.https.onRequest(async (request, response) => {
+  const { url, codeVerifier, state } = twitterClient.generateOAuth2AuthLink(
+    callbackUrl,
+    { scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'] }
+  );
+
+  // store verifier
+  await dbRef.set({ codeVerifier, state });
+
+  response.redirect(url);
+});
+
+exports.callback = functions.https.onRequest(async (request, response) => {
+  const { state, code } = request.query;
+
+  const dbSnapshot = await dbRef.get();
+  const snapShotData = dbSnapshot.data();
+
+  if (!snapShotData) {
+    response.status(400).send('No data retreived');
+  }
+
+  const { codeVerifier, state: storedState } = snapShotData;
+
+  if (state !== storedState) {
+    response.status(400).send('Stored tokens didnt match');
+  }
+
+  const {
+    // client: loggedClient,
+    accessToken,
+    refreshToken,
+  } = await twitterClient.loginWithOAuth2({
+    code: `${code}`, codeVerifier, redirectUri: callbackUrl,
+  });
+
+  // access and refresh tokens
+  await dbRef.set({ accessToken, refreshToken });
+
+  response.sendStatus(200);
+});
+
+exports.tweet = functions.https.onRequest(async (request, response) => {
+  // const { refreshToken } = (await dbRef.get()).data();
+
+  // const {
+  //   client: refreshedClient,
+  //   accessToken,
+  //   refreshToken: newRefreshToken,
+  // } = await twitterClient.refreshOAuth2Token(refreshToken);
+
+  // await dbRef.set({ accessToken, refreshToken: newRefreshToken });
+
+  // const { data } = await refreshedClient.v2.tweet('I done did a twitter');
+
+  response.status(200).send('');
+});
