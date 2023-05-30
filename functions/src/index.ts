@@ -5,6 +5,7 @@ import { TwitterApi } from 'twitter-api-v2';
 import { Configuration, OpenAIApi } from 'openai';
 
 dotenv.config();
+
 const {
   TWITTER_CLIENT_ID,
   TWITTER_CLIENT_SECRET,
@@ -28,7 +29,7 @@ const openai = new OpenAIApi(configuration);
 
 // Initialize firebase
 admin.initializeApp();
-const dbRef = admin.firestore().doc('tokens/demo');
+const dbRef = admin.firestore().doc('tokens/twitter-auth');
 
 exports.auth = functions.https.onRequest(async (request, response) => {
   const { url, codeVerifier, state } = twitterClient.generateOAuth2AuthLink(
@@ -92,12 +93,6 @@ exports.tweet = functions.https.onRequest(async (request, response) => {
     model: 'gpt-3.5-turbo',
     temperature: 1,
   });
-  // const completion = await openai.createCompletion({
-  //   model: 'gpt-3.5-turbo',
-  //   prompt: 'write a clickbait tweet by Skip Bayless on how overrated' +
-  //   'K-Pop is in 280 characters or less',
-  //   max_tokens: 280,
-  // });
 
   const tweet = completion.data.choices[0].message.content;
 
