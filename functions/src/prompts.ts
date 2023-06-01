@@ -37,7 +37,6 @@ export const WILDCARDTALKINGPOINTS: Array<string> = [
 export const GOATTALKINGPOINTS: Array<string> = [
   'clutch gene',
   'clutch',
-  'psychomode',
   'goat',
 ];
 
@@ -59,6 +58,5 @@ export const TOPICS: Array<TalkingPoint> = [
   { thing: 'Nikola Jokić', soundBites: NEGATIVETALKINGPOINTS },
   { thing: 'Russell Westbrook', soundBites: NEGATIVETALKINGPOINTS },
   { thing: 'Stephen Curry', soundBites: NEGATIVETALKINGPOINTS },
-  { thing: 'Tom Brady', soundBites: GOATTALKINGPOINTS },
   { thing: 'Michael Jordan', soundBites: GOATTALKINGPOINTS },
 ];
