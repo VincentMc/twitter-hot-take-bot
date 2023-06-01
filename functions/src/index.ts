@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import { TwitterApi } from 'twitter-api-v2';
 import { Configuration, OpenAIApi } from 'openai';
+import { TOPICS } from './prompts';
 
 dotenv.config();
 
@@ -73,22 +74,26 @@ exports.callback = functions.https.onRequest(async (request, response) => {
 });
 
 exports.tweet = functions.https.onRequest(async (request, response) => {
-  // const { refreshToken } = (await dbRef.get()).data();
+  const { refreshToken } = (await dbRef.get()).data();
 
-  // const {
-  //   client: refreshedClient,
-  //   accessToken,
-  //   refreshToken: newRefreshToken,
-  // } = await twitterClient.refreshOAuth2Token(refreshToken);
+  const {
+    client: refreshedClient,
+    accessToken,
+    refreshToken: newRefreshToken,
+  } = await twitterClient.refreshOAuth2Token(refreshToken);
 
-  // await dbRef.set({ accessToken, refreshToken: newRefreshToken });
+  await dbRef.set({ accessToken, refreshToken: newRefreshToken });
 
-  // const { data } = await refreshedClient.v2.tweet('I done did a twitter');
+  const { thing, soundBites } = TOPICS[Math.floor(Math.random()*TOPICS.length)];
+  const soundBite = soundBites[Math.floor(Math.random()*soundBites.length)];
+
+  // eslint-disable-next-line max-len
+  const prompt = `write a tweet by Skip Bayless about ${thing} it should include ${soundBite}`;
+
   const completion = await openai.createChatCompletion({
     messages: [{
       'role': 'user',
-      'content': 'write a tweet by Skip Bayless on how terrible' +
-      'Lebron is in the 4th quarter in 280 characters or less',
+      'content': prompt,
     }],
     model: 'gpt-3.5-turbo',
     temperature: 1,
@@ -96,5 +101,7 @@ exports.tweet = functions.https.onRequest(async (request, response) => {
 
   const tweet = completion.data.choices[0].message.content;
 
-  response.status(200).send(tweet);
+  const { data } = await refreshedClient.v2.tweet(tweet);
+
+  response.status(200).send(data);
 });
