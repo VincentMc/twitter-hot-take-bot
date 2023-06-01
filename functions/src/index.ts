@@ -60,7 +60,6 @@ exports.callback = functions.https.onRequest(async (request, response) => {
   }
 
   const {
-    // client: loggedClient,
     accessToken,
     refreshToken,
   } = await twitterClient.loginWithOAuth2({
