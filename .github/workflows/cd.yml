@@ -1,9 +1,7 @@
 name: Deploy Cloud Functions
 on:
-  workflow_run:
-    workflows: ["CI build"]
-    types:
-      - completed
+  push:
+    branches: ["main"]
 
 jobs:
   build_and_deploy:
