@@ -4,8 +4,8 @@
 name: CI BUILD
 
 on:
-  push:
-    branches: ["main"]
+  pull_request:
+    types: [opened, reopened, edited, ready_for_review]
 
 jobs:
   build:
