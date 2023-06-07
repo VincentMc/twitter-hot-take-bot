@@ -60,3 +60,7 @@ export const TOPICS: Array<TalkingPoint> = [
   { thing: 'Stephen Curry', soundBites: NEGATIVETALKINGPOINTS },
   { thing: 'Michael Jordan', soundBites: GOATTALKINGPOINTS },
 ];
+
+export const PERSONALITIES: Array<string> = [
+  'Skip Bayless',
+];

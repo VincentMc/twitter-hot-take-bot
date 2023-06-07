@@ -3,7 +3,7 @@ import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import { TwitterApi } from 'twitter-api-v2';
 import { Configuration, OpenAIApi } from 'openai';
-import { TOPICS } from './prompts';
+import { PERSONALITIES, TOPICS } from './prompts';
 
 dotenv.config();
 
@@ -83,11 +83,14 @@ exports.tweet = functions.https.onRequest(async (request, response) => {
 
   await dbRef.set({ accessToken, refreshToken: newRefreshToken });
 
+  const personality = PERSONALITIES[Math.floor(
+    Math.random()*PERSONALITIES.length
+  )];
   const { thing, soundBites } = TOPICS[Math.floor(Math.random()*TOPICS.length)];
   const soundBite = soundBites[Math.floor(Math.random()*soundBites.length)];
 
   // eslint-disable-next-line max-len
-  const prompt = `write a tweet by Skip Bayless about ${thing} it should include ${soundBite}`;
+  const prompt = `write a tweet by ${personality} about ${thing} it should include ${soundBite}`;
 
   const completion = await openai.createChatCompletion({
     messages: [{
